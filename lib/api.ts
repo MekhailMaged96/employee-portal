@@ -1,5 +1,3 @@
-"use client";
-
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -8,7 +6,6 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Read token from cookie (not localStorage — middleware needs cookies)
 function getToken(): string | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
@@ -16,9 +13,10 @@ function getToken(): string | null {
 }
 
 api.interceptors.request.use((config) => {
-  const token = getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const isAuthRoute = config.url?.startsWith("/auth/");
+  if (!isAuthRoute) {
+    const token = getToken();
+    if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -35,17 +33,17 @@ api.interceptors.response.use(
     console.error("API Error:", error.response || error.message);
 
     const status: number | undefined = error.response?.status;
+    const isAuthRoute = error.config?.url?.startsWith("/auth/");
+
     const message =
       (status && ERROR_MESSAGES[status]) ??
       error.response?.data?.message ??
-      (error.request
-        ? "Network error or CORS blocked."
-        : "Something went wrong.");
+      (error.request ? "Network error or CORS blocked." : "Something went wrong.");
 
     toast.error(message);
 
-    if (status === 401) {
-      // Clear token cookie and redirect to login
+    // Only auto-redirect on 401 for protected routes, not auth routes
+    if (status === 401 && !isAuthRoute) {
       document.cookie = "token=; path=/; max-age=0";
       window.location.href = "/login";
     }

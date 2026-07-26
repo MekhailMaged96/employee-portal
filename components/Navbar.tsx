@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -19,6 +19,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const { isAuthenticated, hasAnyRole, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Avoid SSR/client mismatch — auth state only known after hydration
+  useEffect(() => { setMounted(true); }, []);
 
   const handleLogout = () => {
     logout();
@@ -50,7 +54,7 @@ export default function Navbar() {
 
           {/* Desktop links */}
           <div className="hidden items-center gap-1 md:flex">
-            {isAuthenticated &&
+            {mounted && isAuthenticated &&
               visibleLinks.map(({ to, label }) => (
                 <Link key={to} href={to} className={linkClass(to)}>
                   {label}
@@ -60,7 +64,7 @@ export default function Navbar() {
 
           {/* Desktop auth */}
           <div className="hidden items-center gap-2 md:flex">
-            {isAuthenticated ? (
+            {mounted && isAuthenticated ? (
               <button
                 onClick={handleLogout}
                 className="rounded-md border border-white/40 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/10"
@@ -104,7 +108,7 @@ export default function Navbar() {
         {/* Mobile menu */}
         {isOpen && (
           <div className="space-y-1 pb-4 md:hidden">
-            {isAuthenticated &&
+            {mounted && isAuthenticated &&
               visibleLinks.map(({ to, label }) => (
                 <Link
                   key={to}
@@ -116,7 +120,7 @@ export default function Navbar() {
                 </Link>
               ))}
             <div className="mt-2 flex flex-col gap-2 border-t border-white/20 pt-3">
-              {isAuthenticated ? (
+              {mounted && isAuthenticated ? (
                 <button
                   onClick={handleLogout}
                   className="rounded-md border border-white/40 px-4 py-2 text-sm font-medium text-white hover:bg-white/10"
